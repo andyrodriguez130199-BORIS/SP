@@ -73,7 +73,12 @@ def get_sp500_universe() -> tuple[list[str], dict[str, str]]:
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     logger.info("Downloading S&P 500 constituent list from Wikipedia …")
     try:
-        tables = pd.read_html(url, header=0)
+        # Disfrazamos la petición para que Wikipedia crea que somos Google Chrome
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        html_data = requests.get(url, headers=headers).text
+        tables = pd.read_html(html_data, header=0)
         df = tables[0]
         # Normalise column names (Wikipedia occasionally changes them)
         df.columns = df.columns.str.strip()
