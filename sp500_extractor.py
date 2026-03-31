@@ -26,7 +26,7 @@ from yahooquery import Ticker as YQTicker
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-FISCAL_YEARS: list[int] = [2020, 2021, 2022, 2023, 2024]
+FISCAL_YEARS: list[int] = [2022, 2023, 2024]
 OUTPUT_FILE: str = "sp500_panel_data.csv"
 
 # GICS sector labels that must be excluded (case-insensitive substring match)
@@ -141,9 +141,9 @@ def _fetch_financials(
     """
     try:
         yq = YQTicker(ticker)
-        income = yq.income_statement(frequency="annual", trailing=False)
-        balance = yq.balance_sheet(frequency="annual", trailing=False)
-        cashflow = yq.cash_flow(frequency="annual", trailing=False)
+        income = yq.income_statement(frequency="a")
+        balance = yq.balance_sheet(frequency="a")
+        cashflow = yq.cash_flow(frequency="a")
 
         # yahooquery occasionally returns a dict on error
         income = income if isinstance(income, pd.DataFrame) else pd.DataFrame()
