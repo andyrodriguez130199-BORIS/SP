@@ -203,8 +203,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
     constituents_by_year = read_constituents_by_year(config.constituents_by_year_file)
 
     tickers = sorted(set(input_df["Ticker"].tolist()))
-    toolkit_instance = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
-    toolkit_init_ok = toolkit_instance is not None
+    toolkit_init_ok = try_init_financetoolkit(tickers, api_key) is not None
 
     errors: List[str] = []
     exclusions = []
@@ -270,8 +269,8 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                 total_assets = pick_value(record, "totalAssets", "TotalAssets")
                 total_debt = pick_value(record, "totalDebt", "TotalDebt", default=np.nan)
                 if pd.isna(total_debt):
-                    long_debt = pick_value(record, "longTermDebt", "LongTermDebt", default=0)
-                    short_debt = pick_value(record, "shortTermDebt", "ShortTermDebt", "currentDebt", default=0)
+                    long_debt = pick_value(record, "longTermDebt", "LongTermDebt", default=np.nan)
+                    short_debt = pick_value(record, "shortTermDebt", "ShortTermDebt", "currentDebt", default=np.nan)
                     if pd.notna(long_debt) or pd.notna(short_debt):
                         long_debt = pd.to_numeric(long_debt, errors="coerce")
                         short_debt = pd.to_numeric(short_debt, errors="coerce")
@@ -347,6 +346,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Winsorización de razón de endeudamiento para robustez
     if not panel["Endeudamiento_Ratio"].dropna().empty:
+        # Percentiles 1%-99% para limitar valores extremos de apalancamiento que distorsionan la regresión.
         p1, p99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
         panel["Endeudamiento_Ratio"] = np.clip(panel["Endeudamiento_Ratio"], p1, p99)
 
