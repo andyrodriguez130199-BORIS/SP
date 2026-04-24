@@ -26,7 +26,7 @@ import pandas as pd
 
 try:
     from financetoolkit import Toolkit
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Toolkit = None
 
 
@@ -203,7 +203,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
     constituents_by_year = read_constituents_by_year(config.constituents_by_year_file)
 
     tickers = sorted(set(input_df["Ticker"].tolist()))
-    toolkit_obj = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
+    finance_toolkit = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
 
     errors: List[str] = []
     exclusions = []
@@ -272,11 +272,14 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                     long_debt = pick_value(record, "longTermDebt", "LongTermDebt", default=0)
                     short_debt = pick_value(record, "shortTermDebt", "ShortTermDebt", "currentDebt", default=0)
                     if pd.notna(long_debt) or pd.notna(short_debt):
-                        total_debt = float(long_debt) + float(short_debt)
+                        long_debt = pd.to_numeric(long_debt, errors="coerce")
+                        short_debt = pd.to_numeric(short_debt, errors="coerce")
+                        total_debt = float(np.nan_to_num(long_debt, nan=0.0)) + float(
+                            np.nan_to_num(short_debt, nan=0.0)
+                        )
 
                 eps = pick_value(
                     record,
-                    "epsdilutedExcludingExtraordinaryItems",
                     "epsDilutedExcludingExtraordinaryItems",
                     "epsDiluted",
                     "epsdiluted",
@@ -315,7 +318,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                         "DPS": pd.to_numeric(dps, errors="coerce"),
                         "Dummy_Dividendos": 1 if pd.notna(dps) and float(dps) > 0 else 0,
                         "SIC": sic,
-                        "Toolkit_Init_OK": toolkit_obj is not None,
+                        "Toolkit_Init_OK": finance_toolkit is not None,
                     }
                 )
 
