@@ -297,9 +297,11 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                 )
                 if pd.isna(dps):
                     cash_div = pick_value(record, "dividendsPaid", "cashDividendsPaid", "CashDividendsPaid", default=np.nan)
-                    shares = pick_value(record, "weightedAverageShsOutDil", "weightedAverageShsOut", "sharesOutstanding", default=np.nan)
-                    if pd.notna(cash_div) and pd.notna(shares) and float(shares) > 0:
-                        dps = abs(float(cash_div)) / float(shares)
+                    shares_outstanding = pick_value(
+                        record, "weightedAverageShsOutDil", "weightedAverageShsOut", "sharesOutstanding", default=np.nan
+                    )
+                    if pd.notna(cash_div) and pd.notna(shares_outstanding) and float(shares_outstanding) > 0:
+                        dps = abs(float(cash_div)) / float(shares_outstanding)
 
                 endeudamiento = np.nan
                 if pd.notna(total_assets) and float(total_assets) > 0 and pd.notna(total_debt):
@@ -354,7 +356,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Continuidad temporal 2022-2024 para reducir sesgo por datos incompletos
     required_years = set(range(config.start_year, config.end_year + 1))
-    year_matrix = panel.pivot_table(index="Ticker", columns="Año", values="Precio_Promedio_Forward", aggfunc="size", fill_value=0)
+    year_matrix = panel.pivot_table(index="Ticker", columns="Año", aggfunc="size", fill_value=0)
     required_columns = sorted(required_years)
     coverage_mask = year_matrix.reindex(columns=required_columns, fill_value=0).gt(0).all(axis=1)
     valid_tickers = coverage_mask[coverage_mask].index
