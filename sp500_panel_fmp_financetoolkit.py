@@ -203,7 +203,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
     constituents_by_year = read_constituents_by_year(config.constituents_by_year_file)
 
     tickers = sorted(set(input_df["Ticker"].tolist()))
-    finance_toolkit = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
+    toolkit_instance = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
 
     errors: List[str] = []
     exclusions = []
@@ -254,7 +254,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                 if not record:
                     continue
 
-                report_date_raw = pick_value(record, "fillingDate", "acceptedDate", "date", default=None)
+                report_date_raw = pick_value(record, "filingDate", "fillingDate", "acceptedDate", "date", default=None)
                 if report_date_raw is None:
                     errors.append(f"{ticker}-{year}: sin fecha de publicación")
                     continue
@@ -318,7 +318,6 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                         "DPS": pd.to_numeric(dps, errors="coerce"),
                         "Dummy_Dividendos": 1 if pd.notna(dps) and float(dps) > 0 else 0,
                         "SIC": sic,
-                        "Toolkit_Init_OK": finance_toolkit is not None,
                     }
                 )
 
@@ -347,14 +346,13 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Winsorización de razón de endeudamiento para robustez
     if not panel["Endeudamiento_Ratio"].dropna().empty:
-        q1, q99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
-        panel["Endeudamiento_Ratio"] = np.clip(panel["Endeudamiento_Ratio"], q1, q99)
+        p1, p99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
+        panel["Endeudamiento_Ratio"] = np.clip(panel["Endeudamiento_Ratio"], p1, p99)
 
     # Continuidad temporal 2022-2024 para reducir sesgo por datos incompletos
     required_years = set(range(config.start_year, config.end_year + 1))
-    valid_tickers = (
-        panel.groupby("Ticker")["Año"].apply(lambda ys: required_years.issubset(set(ys.tolist()))).pipe(lambda s: s[s].index)
-    )
+    ticker_year_coverage = panel.groupby("Ticker")["Año"].apply(lambda ys: required_years.issubset(set(ys.tolist())))
+    valid_tickers = ticker_year_coverage[ticker_year_coverage].index
     panel = panel[panel["Ticker"].isin(valid_tickers)].copy()
 
     panel = panel.sort_values(["Ticker", "Año"]).reset_index(drop=True)
@@ -366,6 +364,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
             else "No se reconstruyó composición histórica anual del S&P 500; se reconoce potencial sesgo de supervivencia."
         ),
         "constituents_source": config.constituents_by_year_file or "Lista de entrada actual",
+        "toolkit_init_ok": str(toolkit_instance is not None),
     }
     return panel, exclusions_df, errors, meta
 
@@ -392,6 +391,10 @@ def export_results(panel: pd.DataFrame, exclusions: pd.DataFrame, errors: List[s
             {
                 "Campo": "N_Empresas",
                 "Valor": panel["Ticker"].nunique() if not panel.empty else 0,
+            },
+            {
+                "Campo": "Toolkit_Init_OK",
+                "Valor": meta.get("toolkit_init_ok", ""),
             },
         ]
     )
