@@ -39,6 +39,7 @@ class StudyConfig:
     output_file: str
     start_year: int = 2022
     end_year: int = 2024
+    progress_every: int = 25
     batch_sleep_seconds: float = 0.2
     profile_cache_sleep_seconds: float = 0.05
     constituents_by_year_file: Optional[str] = None
@@ -321,7 +322,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                     }
                 )
 
-            if i % 25 == 0:
+            if i % config.progress_every == 0:
                 print(f"Procesados: {i}/{len(tickers)}")
             time.sleep(config.batch_sleep_seconds)
 
@@ -353,8 +354,10 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Continuidad temporal 2022-2024 para reducir sesgo por datos incompletos
     required_years = set(range(config.start_year, config.end_year + 1))
-    ticker_year_coverage = panel.groupby("Ticker")["Año"].apply(lambda ys: required_years.issubset(set(ys)))
-    valid_tickers = ticker_year_coverage[ticker_year_coverage].index
+    year_matrix = panel.pivot_table(index="Ticker", columns="Año", values="Precio_Promedio_Forward", aggfunc="size", fill_value=0)
+    required_columns = sorted(required_years)
+    coverage_mask = year_matrix.reindex(columns=required_columns, fill_value=0).gt(0).all(axis=1)
+    valid_tickers = coverage_mask[coverage_mask].index
     panel = panel[panel["Ticker"].isin(valid_tickers)].copy()
 
     panel = panel.sort_values(["Ticker", "Año"]).reset_index(drop=True)
