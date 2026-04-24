@@ -37,7 +37,7 @@ FMP_BASE = "https://financialmodelingprep.com/api/v3"
 class StudyConfig:
     input_file: str
     output_file: str
-    start_year: int = 2022
+    start_year: int = 2020
     end_year: int = 2024
     progress_every: int = 25
     max_api_calls: int = 250
@@ -498,8 +498,8 @@ def export_results(panel: pd.DataFrame, exclusions: pd.DataFrame, errors: List[s
 def parse_args() -> StudyConfig:
     parser = argparse.ArgumentParser(description="Extracción panel S&P 500 con FMP/FinanceToolkit.")
     parser.add_argument("--input", default="EMPRESAS FINALES.xlsx", help="Ruta del archivo de empresas (xlsx/csv).")
-    parser.add_argument("--output", default="Panel_Datos_Tesis_2022_2024.xlsx", help="Archivo de salida xlsx.")
-    parser.add_argument("--start-year", type=int, default=2022)
+    parser.add_argument("--output", default="Panel_Datos_Tesis_2020_2024.xlsx", help="Archivo de salida xlsx.")
+    parser.add_argument("--start-year", type=int, default=2020)
     parser.add_argument("--end-year", type=int, default=2024)
     parser.add_argument("--max-api-calls", type=int, default=250, help="Límite diario de llamadas API.")
     parser.add_argument(
