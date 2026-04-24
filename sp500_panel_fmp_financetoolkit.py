@@ -413,7 +413,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
     panel["Dummy_Dividendos"] = (panel["DPS"] > 0).astype(int)
 
     # Winsorización de razón de endeudamiento para robustez
-    if not panel["Endeudamiento_Ratio"].dropna().empty:
+    if len(panel["Endeudamiento_Ratio"].dropna()) > 0:
         panel["Endeudamiento_Ratio_Original"] = panel["Endeudamiento_Ratio"]
         # Percentiles 1%-99% para limitar valores extremos de apalancamiento que distorsionan la regresión.
         p1, p99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
@@ -517,7 +517,7 @@ def parse_args() -> StudyConfig:
         default=None,
         help="Archivo opcional (xlsx/csv) con columnas Year,Ticker para corregir sesgo de supervivencia.",
     )
-    args, _unknown = parser.parse_known_args()
+    args, _ = parser.parse_known_args()
 
     return StudyConfig(
         input_file=args.input,
