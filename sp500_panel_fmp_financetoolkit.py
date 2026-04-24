@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Extracción de panel S&P 500 (2022-2024) con metodología econométrica.
+Extracción de panel S&P 500 (2020-2024 por defecto) con metodología econométrica.
 
 - Fuente financiera principal: FinancialModelingPrep (API key compatible con FinanceToolkit)
 - Fuente de precios: FMP historical-price-full (adjClose)
@@ -419,7 +419,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
         p1, p99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
         panel["Endeudamiento_Ratio"] = np.clip(panel["Endeudamiento_Ratio"], p1, p99)
 
-    # Continuidad temporal 2022-2024 para reducir sesgo por datos incompletos
+    # Continuidad temporal en el rango solicitado para reducir sesgo por datos incompletos
     required_years = set(range(config.start_year, config.end_year + 1))
     year_matrix = panel.pivot_table(index="Ticker", columns="Año", aggfunc="size", fill_value=0)
     required_columns = sorted(required_years)
