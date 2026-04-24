@@ -254,7 +254,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
                 if not record:
                     continue
 
-                report_date_raw = pick_value(record, "filingDate", "fillingDate", "acceptedDate", "date", default=None)
+                report_date_raw = pick_value(record, "filingDate", "acceptedDate", "date", default=None)
                 if report_date_raw is None:
                     errors.append(f"{ticker}-{year}: sin fecha de publicación")
                     continue
@@ -346,6 +346,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Winsorización de razón de endeudamiento para robustez
     if not panel["Endeudamiento_Ratio"].dropna().empty:
+        panel["Endeudamiento_Ratio_Original"] = panel["Endeudamiento_Ratio"]
         # Percentiles 1%-99% para limitar valores extremos de apalancamiento que distorsionan la regresión.
         p1, p99 = panel["Endeudamiento_Ratio"].quantile([0.01, 0.99])
         panel["Endeudamiento_Ratio"] = np.clip(panel["Endeudamiento_Ratio"], p1, p99)
