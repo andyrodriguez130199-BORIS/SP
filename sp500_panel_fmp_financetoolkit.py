@@ -18,7 +18,7 @@ import time
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
@@ -204,6 +204,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     tickers = sorted(set(input_df["Ticker"].tolist()))
     toolkit_instance = try_init_financetoolkit(tickers, api_key)  # se inicializa para validar setup solicitado
+    toolkit_init_ok = toolkit_instance is not None
 
     errors: List[str] = []
     exclusions = []
@@ -351,7 +352,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
 
     # Continuidad temporal 2022-2024 para reducir sesgo por datos incompletos
     required_years = set(range(config.start_year, config.end_year + 1))
-    ticker_year_coverage = panel.groupby("Ticker")["Año"].apply(lambda ys: required_years.issubset(set(ys.tolist())))
+    ticker_year_coverage = panel.groupby("Ticker")["Año"].apply(lambda ys: required_years.issubset(set(ys)))
     valid_tickers = ticker_year_coverage[ticker_year_coverage].index
     panel = panel[panel["Ticker"].isin(valid_tickers)].copy()
 
@@ -364,7 +365,7 @@ def build_panel(config: StudyConfig, api_key: str) -> Tuple[pd.DataFrame, pd.Dat
             else "No se reconstruyó composición histórica anual del S&P 500; se reconoce potencial sesgo de supervivencia."
         ),
         "constituents_source": config.constituents_by_year_file or "Lista de entrada actual",
-        "toolkit_init_ok": str(toolkit_instance is not None),
+        "toolkit_init_ok": str(toolkit_init_ok),
     }
     return panel, exclusions_df, errors, meta
 
@@ -382,7 +383,7 @@ def export_results(panel: pd.DataFrame, exclusions: pd.DataFrame, errors: List[s
             },
             {
                 "Campo": "Fecha_Extraccion",
-                "Valor": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                "Valor": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             },
             {
                 "Campo": "N_Observaciones",
